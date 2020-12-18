@@ -676,7 +676,35 @@ class teacher_get_sign_detail(APIView):
             'data': StudentSignSer(Studentsign).data
         }, status=200)
 
-class stuchangepasswork(APIView):
+class student_get_sign(APIView):
+    def get(self, request):
+        token = request.META.get('HTTP_TOKEN')
+        course_id = request.GET.get('course_id')
+
+        stu_id = s_chk_token(token)
+        if isinstance(stu_id, Response):
+            return stu_id
+
+        c = chk_course_id(course_id)
+        if isinstance(c, Response):
+            return c
+        time_now = timezone.now()
+        expired_sign = sign.objects.filter(course=course_id, Deadline_lte=time_now)
+        if len(expired_sign) > 0:
+            return Response({
+                'info': '签到已过期',
+                'code': 403,
+            }, status=403)
+
+        Sign = sign.objects.filter(course_id=course_id)
+
+        return Response({
+            'info': 'success',
+            'code': 200,
+            'data': SignSer(Sign).data
+        }, status=200)
+
+class stuchangepassword(APIView):
 
     def post(self, request):
         token = request.META.get('HTTP_TOKEN')
@@ -707,35 +735,7 @@ class stuchangepasswork(APIView):
             'data': StuInfoSer(S).data
         }, status=200)
     
-class student_get_sign(APIView):
-    def get(self, request):
-        token = request.META.get('HTTP_TOKEN')
-        course_id = request.GET.get('course_id')
-
-        stu_id = s_chk_token(token)
-        if isinstance(stu_id, Response):
-            return stu_id
-
-        c = chk_course_id(course_id)
-        if isinstance(c, Response):
-            return c
-        time_now = timezone.now()
-        expired_sign = sign.objects.filter(course=course_id, Deadline_lte=time_now)
-        if len(expired_sign) > 0:
-            return Response({
-                'info': '签到已过期',
-                'code': 403,
-            }, status=403)
-
-        Sign = sign.objects.filter(course_id=course_id)
-
-        return Response({
-            'info': 'success',
-            'code': 200,
-            'data': SignSer(Sign).data
-        }, status=200)
-    
-class teachangepasswork(APIView):
+class teachangepassword(APIView):
 
     def post(self, request):
         token = request.META.get('HTTP_TOKEN')
@@ -767,7 +767,7 @@ class teachangepasswork(APIView):
             'data': TeaInfoSer(T).data
         }, status=200)
 
-class machangepasswork(APIView):
+class machangepassword(APIView):
     def post(self, request):
         token = request.META.get('HTTP_TOKEN')
         manager_id = request.POST.get('manager_id')
