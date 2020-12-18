@@ -376,7 +376,7 @@ class delete_student(APIView):
             return student_id
         S = student.objects.get(pk=student_id)
         course.objects.filter(StuNo=student_id).delete()
-        studentsign.objects.filter(StuNo=student_id).delate()
+        studentsign.objects.filter(StuNo=student_id).delete()
 
         S.delete()
 
@@ -472,85 +472,6 @@ class delete_notice(APIView):
             'data': NoticeSer(N).data
         }, status=200)
 
-#class modify_homework(APIView):
-    def post(self,request):
-        token = request.META.get('token')
-        homework_id = request.POST.get('homework_id')
-        if homework_id is None:
-            return Response({
-                'info': '参数不完整',
-                'code': 400,
-            }, status=400)
-
-        teacher_id = t_chk_token(token)
-        if isinstance(teacher_id, Response):
-            return teacher_id
-
-
-        homework_id = chk_homework_id(homework_id)
-        if isinstance(homework_id, Response):
-            return homework_id
-        H = homework.objects.get(pk=homework_id)
-        S = submission.objects.filter(HomeNo=homework_id)
-        if len(S) > 0:
-            S.delete()
-
-        homework_title = request.POST.get('homework_title')
-        homework_date = request.POST.get('homework_date')
-        course_id = request.POST.get('course_id')
-
-        H.Title = homework_title
-        H.PubDate = homework_date
-        H.CuNo = course_id
-
-        H.save()
-
-        return Response({
-            'info': 'success',
-            'code': 200,
-            'data': HomSer(H).data
-        }, status=200)
-
-#class modify_sign(APIView):
-    def post(self, request):
-        token = request.META.get('token')
-        course_id = request.POST.get('course_id')
-        if course_id is None:
-            return Response({
-                'info': '参数不完整',
-                'code': 400,
-            }, status=400)
-
-        teacher_id = t_chk_token(token)
-        if isinstance(teacher_id, Response):
-            return teacher_id
-
-        course_id = chk_course_id(course_id)
-        if isinstance(course_id, Response):
-            return course_id
-
-
-        S = studentsign.objects.filter(CuNo=course_id)
-
-        student_id = request.POST.get('student_id')
-        sign_pubtime = request.POST.get('sign_pubtime')
-        sign_subtime = request.POST.get('sign_subtime')
-        course_id = request.POST.get('course_id')
-        sign_by = request.POST.get('sign_by')
-
-        S.StuNo= student_id
-        S.PubTime = sign_pubtime
-        S.SubTime = sign_subtime
-        S.CuNo = course_id
-        S.sign_by = sign_by
-
-        S.save()
-
-        return Response({
-            'info': 'success',
-            'code': 200,
-            'data': SignSer(S).data
-        }, status=200)
 
 class delete_homework(APIView):
     def post(self, request):
@@ -614,54 +535,7 @@ class delete_sign(APIView):
             'data': SignSer(S).data
         }, status=200)
 
-#class homework_analysis(APIView):
 
-    def post(self, request):
-        token = request.META.get('token')
-
-        homework_id = request.POST.get('homework_id')
-        if homework_id is None:
-            return Response({
-                'info': '参数不完整',
-                'code': 400,
-            }, status=400)
-
-
-        teacher_id = t_chk_token(token)
-        if isinstance(teacher_id, Response):
-            return teacher_id
-
-        homework_id = chk_homework_id()
-        if isinstance(homework_id, Response):
-            return homework_id
-
-        from django.db.models import Q
-
-        above_90 = Count('SubNo', filter=Q(TotalGrade_gt=90))
-        below_60 = Count('SubNo', filter=Q(TotalGrade_lte=60))
-        # 需要提交作业总人数(不会） 作业提交人数，平均成绩 最高分 最低分 分差 及格人数 优秀
-        SubNums=submission.objects.aggregate(Count("SubNo"))
-        SubAvg=submission.objects.aggregate(Avg("TotalGrade"))
-        SubMax=submission.objects.aggregate(Max("TotalGrade"))
-        SubMin=submission.objects.aggregate(Min("TotalGrade"))
-        SubDiff= SubMax-SubMin
-        excellentnums=submission.objects.aggregate(above_90)
-        passnums=submission.objects.aggregate(below_60)
-
-        G=gradeanalysis.object.create(
-            SubNums = SubNums,
-            SubAvg = SubAvg,
-            SubMax = SubMax,
-            SubMin = SubMin,
-            SubDiff = SubDiff,
-            excellentnums = excellentnums,
-            passnums = passnums
-        )
-        return Response({
-            'info': 'success',
-            'code': 200,
-            'data': GraAnaSer(G).data
-        }, status=200)
 
 class publishsign(APIView):#（教师发布签到）
     def post(self,request):
@@ -686,11 +560,6 @@ class publishsign(APIView):#（教师发布签到）
             return course_id
         C = course.objects.filter(CuNo=course_id)
         S = C.StuNo
-        if sign.objects.filter(SignNo=SignNo):
-            return Response({
-                'info': '签到码已存在',
-                'code': 400,
-            }, status=400)
 
         S=sign.objects.create(
             SignNo=SignNo,
@@ -734,8 +603,6 @@ class Sign(APIView):#（学生签到）
 
         time_now = timezone.now()
         expired_sign = sign.objects.filter(student=student_id, course=course_id, Deadline_lte=time_now)
-        #unexpired_sign = sign.objects.filter(student=student_id, course=course_id, Deadline_gt=time_now)
-        #expired_sign.isExpiered = True
 
         if len(expired_sign) > 0:
             return Response({
@@ -743,7 +610,7 @@ class Sign(APIView):#（学生签到）
                 'code': 403,
             }, status=403)
 
-        #unexpired_sign.save()
+
         Ss=studentsign.objects.create(
             StuNo=student_id,
             SubTime = time_now,
@@ -755,55 +622,58 @@ class Sign(APIView):#（学生签到）
             'data': StudentSignSer(Ss).data
         }, status=200)##
 
-class GetSign(APIView):#(教师查看签到）
-    def get(self, request):
-        token = request.META.get('HTTP_TOKEN')
-        course_id = request.GET.get('course_id')
-        viewstudent_id = request.GET.get('viewstudent_id')
 
-        teacher_id = t_chk_token(token)
-        if isinstance(teacher_id, Response):
-            return teacher_id
-
-        course_id = chk_course_id(course_id)
-        if isinstance(course_id, Response):
-            return course_id
-        C = course.objects.get(pk=course_id)
-        S = sign.objects.filter(CuNo=course_id)
-        Sign = studentsign.objects.filter(CuNo=course_id)
-        need_sign_by_nums = C.aggregate(Count('StuNo'))# C.StuNo.count()
-        sign_by_nums = Sign.aggregate(Count('StuNo'))#Sign.StuNo.count()
-        not_sign_by_nums = need_sign_by_nums-sign_by_nums
-
-        Now = timezone.now()
-
-        if sign.objects.filter(CuNo=course_id,Deadline_gl=Now) :
-            VS=viewsign.objects.create(
-                VSNo= viewstudent_id,
-                CuNo = course_id,
-                StuNo=S.sign_by,
-                PubTime = S.PubTime,
-                Deadline = S.Deadline,
-                need_sign_by_nums = need_sign_by_nums,
-                sign_by_nums = sign_by_nums
-            )
-
-        if studentsign.objects.filter(CuNo=course_id,Deadline_lte=Now):
-            VS=viewsign.objects.create(
-                VSNo=viewstudent_id,
-                CuNo=course_id,
-                StuNo=S.sign_by,
-                PubTime=S.PubTime,
-                Deadline=S.Deadline,
-                sign_by_nums=sign_by_nums,
-                not_sign_by_nums = not_sign_by_nums,
-
-            )
 
         return Response({
             'info': 'success',
             'code': 200,
             'data': ViewSignSer(VS).data
+        }, status=200)
+    
+class teacher_get_sign(APIView):
+    def get(self, request):
+        token=request.META.get('token')
+        course_id=request.GET.get('course_id')
+
+        tea_id = t_chk_token(token)
+        if isinstance(tea_id, Response):
+            return tea_id
+
+        c = chk_course_id(course_id)
+        if isinstance(c, Response):
+            return c
+        C = course.objects.get(pk=course_id)
+
+        Sign = studentsign.objects.filter(CuNo=course_id)
+        sign.need_sign_by_nums=C.aggregate(Count('StuNo'))
+        Sign.sign_by_nums = Sign.aggregate(Count('StuNo'))#Sign.StuNo.count()
+        Sign.save()
+
+        return Response({
+            'info': 'success',
+            'code': 200,
+            'data': StudentSignSer(Sign).data
+        }, status=200)
+
+class teacher_get_sign_detail(APIView):
+    def get(self, request):
+        token = request.META.get('HTTP_TOKEN')
+        course_id = request.GET.get('course_id')
+
+        tea_id = t_chk_token(token)
+        if isinstance(tea_id, Response):
+            return tea_id
+
+        c = chk_course_id(course_id)
+        if isinstance(c, Response):
+            return c
+
+        Studentsign = studentsign.objects.filter(course_id__pk=course_id)
+
+        return Response({
+            'info': 'success',
+            'code': 200,
+            'data': StudentSignSer(Studentsign).data
         }, status=200)
 
 class stuchangepasswork(APIView):
@@ -836,7 +706,35 @@ class stuchangepasswork(APIView):
             'code': 200,
             'data': StuInfoSer(S).data
         }, status=200)
+    
+class student_get_sign(APIView):
+    def get(self, request):
+        token = request.META.get('HTTP_TOKEN')
+        course_id = request.GET.get('course_id')
 
+        stu_id = s_chk_token(token)
+        if isinstance(stu_id, Response):
+            return stu_id
+
+        c = chk_course_id(course_id)
+        if isinstance(c, Response):
+            return c
+        time_now = timezone.now()
+        expired_sign = sign.objects.filter(course=course_id, Deadline_lte=time_now)
+        if len(expired_sign) > 0:
+            return Response({
+                'info': '签到已过期',
+                'code': 403,
+            }, status=403)
+
+        Sign = sign.objects.filter(course_id=course_id)
+
+        return Response({
+            'info': 'success',
+            'code': 200,
+            'data': SignSer(Sign).data
+        }, status=200)
+    
 class teachangepasswork(APIView):
 
     def post(self, request):
