@@ -199,6 +199,8 @@ class question(models.Model):
 class studentsign(models.Model):#(学生签到表）
     StuNo = models.CharField(max_length=50, verbose_name='学生学号')
     SubTime = models.DateTimeField(verbose_name='签到时间', default=timezone.now)
+    need_sign_by_nums = models.IntegerField(verbose_name="需要签到人数", null=True)
+    sign_by_nums = models.IntegerField(verbose_name="已签到人数",null=True)
     CuNo = models.ForeignKey(
         'course',
         on_delete=models.CASCADE,
@@ -238,26 +240,4 @@ class sign(models.Model):#（教师发布签到表）
         verbose_name_plural = '签到'
 
 
-class viewsign(models.Model):#(学生签到表）
-    #SignNo = models.CharField(max_length=50, verbose_name='签到编号', primary_key=True)
-    VSNo= models.CharField(max_length=50, verbose_name='签到信息编号', primary_key=True)
-    StuNo = models.CharField(max_length=50, verbose_name='学生学号')
-    PubTime = models.DateTimeField(verbose_name='发布时间')
-    Deadline = models.DateTimeField(verbose_name='截止时间')#1
-    need_sign_by_nums = models.IntegerField(verbose_name="需要签到人数", null=True)
-    sign_by_nums = models.IntegerField(verbose_name="已签到人数",null=True)
-    not_sign_by_nums = models.IntegerField(verbose_name="未签到人数", null=True)
-
-    CuNo = models.ForeignKey(
-        'course',
-        on_delete=models.CASCADE,
-        verbose_name='课程编号'
-    )
-
-
-    def __str__(self):
-        return self.StuNo
-
-    class Meta:
-        verbose_name = '签到信息'
-        verbose_name_plural = '签到信息'
+\
